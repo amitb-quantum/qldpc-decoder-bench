@@ -1,0 +1,57 @@
+### bb_codes.py — construction and verification
+           code     n    k  checks  wt_r  wt_c  CSS HX.HZ^T=0  k matches
+    [[72,12,6]]    72   12      36 6-6   3-3             True       True
+   [[108,8,10]]   108    8      54 6-6   3-3             True       True
+  [[144,12,12]]   144   12      72 6-6   3-3             True       True
+  [[288,12,18]]   288   12     144 6-6   3-3             True       True
+
+### run_qldpc_bench.py — single-block and block scaling
+============================================================================================================
+qLDPC BIVARIATE BICYCLE — nv-qldpc-decoder on RTX 5090, phenomenological p=1e-3
+============================================================================================================
+
+--- single code block, T = d rounds ---
+[[72,12,6]] T=6                    D=   252 F=   648 nnz=   1728  conf 128/128       9.28 us/shot     1.547 us/round
+[[108,8,10]] T=10                  D=   594 F=  1620 nnz=   4320  conf 128/128      32.01 us/shot     3.201 us/round
+[[144,12,12]] T=12                 D=   936 F=  2592 nnz=   6912  conf 128/128      51.72 us/shot     4.310 us/round
+[[288,12,18]] T=18                 D=  2736 F=  7776 nnz=  20736  conf 128/128     154.78 us/shot     8.599 us/round
+
+--- GPU scaling: gross code [[144,12,12]] replicated into blocks ---
+ blocks  logical  physical       D       F      nnz    us/shot  us/round  us/rnd/logical
+      1       12       288     936    2592     6912      34.47     2.873          0.2394
+      2       24       576    1872    5184    13824      70.67     5.889          0.2454
+      4       48      1152    3744   10368    27648     172.75    14.396          0.2999
+      8       96      2304    7488   20736    55296     416.22    34.685          0.3613
+     17      204      4896   15912   44064   117504    1119.53    93.294          0.4573
+Traceback (most recent call last):
+  File "/tmp/qldpc/run_qldpc_bench.py", line 78, in <module>
+    dec = make_decoder(Hb, P, P, nd, batch)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/qldpc/run_qldpc_bench.py", line 21, in make_decoder
+    return qec.get_decoder("nv-qldpc-decoder", Hst, **kw)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+MemoryError: std::bad_alloc
+
+### run_scale2.py — batch sweep, 408-logical point, memory ceiling
+=== single gross-code block: batch sweep (independent-block decoding model) ===
+  batch    us/shot   us/round  blocks/s @12rnd
+     64      66.15      5.512            15118
+    256      35.73      2.978            27984
+   1024      51.99      4.332            19236
+   4096      55.84      4.653            17908
+   8192      62.15      5.179            16090
+
+best per-block: 35.73 us/shot  (2.978 us/round)
+
+=== 408 logical qubits = 34 independent gross-code blocks ===
+  serial over 34 blocks :    1215.0 us/shot    101.25 us/round
+  rho at tau=1ms        : 10.125%
+  rho at tau=5ms        : 2.025%
+  tau_crit (rho=1)      : 101.25 us/round
+
+=== block-diagonal monolith: memory ceiling ===
+  blocks= 17 D= 15912 F= 44064: OK at batch 256
+  blocks= 20 D= 18720 F= 51840: OK at batch 256
+  blocks= 24 D= 22464 F= 62208: OK at batch 256
+  blocks= 28 D= 26208 F= 72576: OK at batch 256
+  blocks= 34 D= 31824 F= 88128: FAILED even at batch 16 — MemoryError

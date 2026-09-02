@@ -1,0 +1,8 @@
+# Core benchmark dependencies.
+# The CUDA-Q QEC stack is CUDA-13 specific; install it for your CUDA version.
+numpy>=2.0
+scipy>=1.13
+cudaq-qec-cu13==0.7.0     # provides nv-qldpc-decoder
+cuda-quantum-cu13==0.15.1
+cupy-cuda13x>=13.6.0
+PyMatching==2.4.0         # surface-code comparison only; not used for qLDPC
